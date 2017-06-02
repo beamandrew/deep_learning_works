@@ -37,7 +37,7 @@ First we'll do an analysis of 0s vs 1s
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
 ## Set the number of training samples to use ##
-train_size = 10
+train_sizes = [10,20,40,60,80]
 batch_size = 1
 
 X_train = np.expand_dims(X_train, axis=3)
@@ -71,14 +71,22 @@ one_hot_final_test = to_categorical(y_final_test, 2)
 
 n_classes = one_hot_train.shape[1]
 
-evals = []
-for i in range(5):
-    fold_inds = np.random.choice(inds,train_size)
-    X_train_fold = X_train[fold_inds]
-    y_train_fold = y_train[fold_inds]
-    model = get_cnn(n_classes)
-    model.fit(X_train_small, one_hot_train, nb_epoch=200,
-                    validation_data=[X_test_small, one_hot_test])
-    evals.append(model.evaluate(X_final_test, one_hot_final_test, batch_size=batch_size))
+folds = 5
+evals = np.zeros((len(train_sizes*folds),3))
+index = 0
+for train_size in train_sizes:
+    for i in range(5):
+        fold_inds = np.random.choice(inds,train_size)
+        X_train_fold = X_train[fold_inds]
+        y_train_fold = y_train[fold_inds]
+        model = get_cnn(n_classes)
+        model.fit(X_train_small, one_hot_train, nb_epoch=200,
+                        validation_data=[X_test_small, one_hot_test])
+        score = (model.evaluate(X_final_test, one_hot_final_test, batch_size=batch_size))
+        evals[index,0] = train_size
+        evals[index,1] = i
+        evals[index,2] = score
+        index += 1
+
 
 
