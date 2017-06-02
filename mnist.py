@@ -44,7 +44,7 @@ X_train = np.expand_dims(X_train, axis=3)
 X_test = np.expand_dims (X_test, axis=3)
 
 # Get training data for 0 and 1
-inds = np.where((y_train == 0) | (y_train == 1))
+inds = np.where((y_train == 0) | (y_train == 1))[0]
 
 X_train_small = X_train[inds]
 X_train_small = X_train_small[:train_size]
@@ -73,6 +73,9 @@ n_classes = one_hot_train.shape[1]
 
 evals = []
 for i in range(5):
+    fold_inds = np.random.choice(inds,train_size)
+    X_train_fold = X_train[fold_inds]
+    y_train_fold = y_train[fold_inds]
     model = get_cnn(n_classes)
     model.fit(X_train_small, one_hot_train, nb_epoch=200,
                     validation_data=[X_test_small, one_hot_test])
