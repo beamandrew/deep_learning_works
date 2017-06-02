@@ -79,10 +79,11 @@ for train_size in train_sizes:
         fold_inds = np.random.choice(inds,train_size)
         X_train_fold = X_train[fold_inds]
         y_train_fold = y_train[fold_inds]
+        one_hot_fold = to_categorical(y_train_fold, 2)
         model = get_cnn(n_classes)
-        model.fit(X_train_small, one_hot_train, nb_epoch=200,
+        model.fit(X_train_fold, one_hot_fold, nb_epoch=200,
                         validation_data=[X_test_small, one_hot_test])
-        score = (model.evaluate(X_final_test, one_hot_final_test, batch_size=batch_size))
+        score = (model.evaluate(X_final_test, one_hot_final_test, batch_size=batch_size))[1]
         evals[index,0] = train_size
         evals[index,1] = i
         evals[index,2] = score
