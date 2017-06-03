@@ -2,13 +2,11 @@ from __future__ import division, print_function
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import *
-from keras.optimizers import SGD
 import numpy as np
 from keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.normalization import BatchNormalization
-from keras.preprocessing.image import ImageDataGenerator
+from sklearn.linear_model import LogisticRegression
+
 
 def get_cnn(n_classes):
     model = Sequential()
@@ -39,7 +37,33 @@ def get_mlp(n_classes):
                   metrics=['accuracy'])
     return model
 
+def get_mlp_leek(n_classes):
+    model = Sequential()
+    model.add(Dense(160, activation='tanh',input_shape=(784,)))
+    model.add(Dense(160, activation='tanh'))
+    model.add(Dense(160, activation='tanh'))
+    model.add(Dense(160, activation='tanh'))
+    model.add(Dense(160, activation='tanh'))
+    model.add(Dropout(0.5))
+    model.add(Dense(n_classes, activation='softmax'))
+    model.compile(optimizer='Adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    return model
 
+def get_leekassso_predictors(x,y,n_preds):
+    eps = 1e-6
+    ## This really makes me appreciate dplyr!
+    x_0 = x[np.where(y==0)]
+    x_1 = x[np.where(y==1)]
+    x0_bar = x_0.mean(axis=0)
+    x1_bar = x_1.mean(axis=0)
+    x0_sigma = x_0.std(axis=0)
+    x1_sigma = x_1.std(axis=0)
+    sigma_pool = np.sqrt( (x0_sigma**2)/len(x_0) + (x1_sigma**2)/len(x_1) ) + eps
+    all_t = np.abs((x0_bar - x1_bar)/sigma_pool)
+    top_10 = np.argsort(-all_t)[0:n_preds]
+    return top_10
 
 '''
 First we'll do an analysis of 0s vs 1s
@@ -125,3 +149,44 @@ for train_size in train_sizes:
         index += 1
 
 np.savetxt('mlp.csv',evals)
+
+
+folds = 5
+evals = np.zeros((len(train_sizes*folds),3))
+index = 0
+for train_size in train_sizes:
+    for i in range(5):
+        fold_inds = np.random.choice(inds,train_size)
+        X_train_fold = X_train[fold_inds].reshape(train_size,784)
+        y_train_fold = y_train[fold_inds]
+        one_hot_fold = to_categorical(y_train_fold, 2)
+        model = get_mlp_leek(n_classes)
+        model.fit(X_train_fold, one_hot_fold, nb_epoch=20,
+                        validation_data=[X_test_flat, one_hot_test])
+        score = (model.evaluate(X_final_test_flat, one_hot_final_test, batch_size=batch_size))[1]
+        evals[index,0] = train_size
+        evals[index,1] = i
+        evals[index,2] = score
+        index += 1
+
+np.savetxt('mlp_leek.csv',evals)
+
+folds = 5
+evals = np.zeros((len(train_sizes*folds),3))
+index = 0
+for train_size in train_sizes:
+    for i in range(5):
+        fold_inds = np.random.choice(inds,train_size)
+        X_train_fold = X_train[fold_inds].reshape(train_size,784)
+        y_train_fold = y_train[fold_inds]
+        leekasso_preds = get_leekassso_predictors(X_train_fold,y_train_fold,10)
+        X_leek = X_train_fold[:,leekasso_preds]
+        model = LogisticRegression(C=1e6) ## no L2 penalty
+        model.fit(X_leek, y_train_fold)
+        score = model.score(X_final_test_flat[:,leekasso_preds],y_final_test)
+        evals[index,0] = train_size
+        evals[index,1] = i
+        evals[index,2] = score
+        index += 1
+
+np.savetxt('leekasso.csv',evals)
