@@ -106,6 +106,8 @@ for train_size in train_sizes:
 np.savetxt('cnn.csv',evals)
 
 X_test_flat = X_test_small.reshape((len(X_test_small),784))
+X_final_test_flat = X_final_test.reshape((len(X_final_test),784))
+
 folds = 5
 evals = np.zeros((len(train_sizes*folds),3))
 index = 0
@@ -118,7 +120,7 @@ for train_size in train_sizes:
         model = get_mlp(n_classes)
         model.fit(X_train_fold, one_hot_fold, nb_epoch=200,
                         validation_data=[X_test_flat, one_hot_test])
-        score = (model.evaluate(X_final_test, one_hot_final_test, batch_size=batch_size))[1]
+        score = (model.evaluate(X_final_test_flat, one_hot_final_test, batch_size=batch_size))[1]
         evals[index,0] = train_size
         evals[index,1] = i
         evals[index,2] = score
