@@ -29,6 +29,20 @@ def get_cnn(n_classes):
                   metrics=['accuracy'])
     return model
 
+def get_mlp(n_classes):
+    model = Sequential()
+    model.add(Dense(128, activation='relu',input_shape=(784,)))
+    model.add(Dropout(0.5))
+    model.add(Dense(128, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(n_classes, activation='softmax'))
+    model.compile(optimizer='Adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    return model
+
+
+
 '''
 First we'll do an analysis of 0s vs 1s
 '''
@@ -89,5 +103,25 @@ for train_size in train_sizes:
         evals[index,2] = score
         index += 1
 
+np.savetxt('cnn.csv',evals)
 
+X_test_flat = X_test_small.reshape((len(X_test_small),784))
+folds = 5
+evals = np.zeros((len(train_sizes*folds),3))
+index = 0
+for train_size in train_sizes:
+    for i in range(5):
+        fold_inds = np.random.choice(inds,train_size)
+        X_train_fold = X_train[fold_inds].reshape(train_size,784)
+        y_train_fold = y_train[fold_inds]
+        one_hot_fold = to_categorical(y_train_fold, 2)
+        model = get_mlp(n_classes)
+        model.fit(X_train_fold, one_hot_fold, nb_epoch=200,
+                        validation_data=[X_test_flat, one_hot_test])
+        score = (model.evaluate(X_final_test, one_hot_final_test, batch_size=batch_size))[1]
+        evals[index,0] = train_size
+        evals[index,1] = i
+        evals[index,2] = score
+        index += 1
 
+np.savetxt('mlp.csv',evals)
