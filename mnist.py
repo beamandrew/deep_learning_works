@@ -65,10 +65,6 @@ def get_leekassso_predictors(x,y,n_preds):
     top_10 = np.argsort(-all_t)[0:n_preds]
     return top_10
 
-'''
-First we'll do an analysis of 0s vs 1s
-'''
-
 ## Load the data ##
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
