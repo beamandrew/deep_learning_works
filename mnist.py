@@ -1,5 +1,5 @@
 from keras.models import Sequential
-from keras.layers import Dense, Dropout Flatten
+from keras.layers import Dense, Dropout, Flatten
 from keras.layers.convolutional import *
 import numpy as np
 from keras.datasets import mnist
