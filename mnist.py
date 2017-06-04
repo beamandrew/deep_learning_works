@@ -5,6 +5,7 @@ from keras.layers.convolutional import *
 import numpy as np
 from keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
+from keras.optimizers import SGD
 from sklearn.linear_model import LogisticRegression
 
 
@@ -17,6 +18,7 @@ def get_cnn(n_classes):
     model.add(Convolution2D(64, 3, 3, activation='relu'))
     model.add(MaxPooling2D())
     model.add(Flatten())
+    model.add(Dropout(0.2))
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(n_classes, activation='softmax'))
@@ -44,9 +46,11 @@ def get_mlp_leek(n_classes):
     model.add(Dense(160, activation='tanh'))
     model.add(Dense(160, activation='tanh'))
     model.add(Dense(160, activation='tanh'))
-    model.add(Dropout(0.5))
     model.add(Dense(n_classes, activation='softmax'))
-    model.compile(optimizer='Adam',
+    ## Attempts to match h2o documentation as closely as possible
+    ## https://cran.r-project.org/web/packages/h2o/h2o.pdf
+    opt = SGD(lr=0.005, momentum=0.0,decay=0.99, nesterov=True)
+    model.compile(optimizer=opt,
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
     return model
@@ -113,9 +117,8 @@ for train_size in train_sizes:
         y_train_fold = y_train[fold_inds]
         one_hot_fold = to_categorical(y_train_fold, 2)
         model = get_cnn(n_classes)
-        model.fit(X_train_fold, one_hot_fold, nb_epoch=200,
-                        validation_data=[X_test_small, one_hot_test])
-        score = (model.evaluate(X_final_test, one_hot_final_test, batch_size=batch_size))[1]
+        model.fit(X_train_fold, one_hot_fold, nb_epoch=200)
+        score = (model.evaluate(X_final_test, one_hot_final_test, batch_size=128))[1]
         evals[index,0] = train_size
         evals[index,1] = i
         evals[index,2] = score
@@ -157,9 +160,8 @@ for train_size in train_sizes:
         y_train_fold = y_train[fold_inds]
         one_hot_fold = to_categorical(y_train_fold, 2)
         model = get_mlp_leek(n_classes)
-        model.fit(X_train_fold, one_hot_fold, nb_epoch=20,
-                        validation_data=[X_test_flat, one_hot_test])
-        score = (model.evaluate(X_final_test_flat, one_hot_final_test, batch_size=batch_size))[1]
+        model.fit(X_train_fold, one_hot_fold, nb_epoch=20,batch_size=1)
+        score = (model.evaluate(X_final_test_flat, one_hot_final_test, batch_size=256))[1]
         evals[index,0] = train_size
         evals[index,1] = i
         evals[index,2] = score
